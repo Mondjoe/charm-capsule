@@ -1,0 +1,92 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(cuid())
+  email     String    @unique
+  password  String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  sessions  Session[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}
+
+model Chain {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  type      String     // solana | aptos | near | evm
+  createdAt DateTime   @default(now())
+
+  validators Validator[]
+}
+
+model Validator {
+  id          String     @id @default(cuid())
+  chainId     String
+  chain       Chain      @relation(fields: [chainId], references: [id])
+
+  address     String
+  name        String?
+  status      String     // active | inactive | jailed | etc.
+  commission  Float?
+  apr         Float?
+  totalStaked Float?
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  metrics     ValidatorMetric[]
+  logs        ValidatorLog[]
+  nodes       Node[]
+}
+
+model Node {
+  id          String     @id @default(cuid())
+  validatorId String
+  validator   Validator  @relation(fields: [validatorId], references: [id])
+
+  endpoint    String
+  type        String     // rpc | validator | archive | etc.
+  status      String     // online | offline
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ValidatorMetric {
+  id          String     @id @default(cuid())
+  validatorId String
+  validator   Validator  @relation(fields: [validatorId], references: [id])
+
+  epoch       Int?
+  slot        Int?
+  uptime      Float?
+  rewards     Float?
+  stake       Float?
+
+  createdAt   DateTime   @default(now())
+}
+
+model ValidatorLog {
+  id          String     @id @default(cuid())
+  validatorId String
+  validator   Validator  @relation(fields: [validatorId], references: [id])
+
+  level       String     // info | warn | error
+  message     String
+  timestamp   DateTime   @default(now())
+}
