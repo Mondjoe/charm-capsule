@@ -36,8 +36,8 @@ model Chain {
 
 model Validator {
   id          String     @id @default(cuid())
-  chainId     String
-  chain       Chain      @relation(fields: [chainId], references: [id])
+  chainId     String     @relation(fields: [chainId], references: [id])
+  address     String     @unique      
 
   address     String     @unique
   name        String?
