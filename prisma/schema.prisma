@@ -39,7 +39,7 @@ model Validator {
   chainId     String
   chain       Chain      @relation(fields: [chainId], references: [id])
 
-  address     String
+  address     String     @unique
   name        String?
   status      String     // active | inactive | jailed | etc.
   commission  Float?
