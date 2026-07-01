@@ -2,13 +2,14 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { SolanaService } from './solana.service';
 import { SolanaNormalizer } from './solana.normalizer';
+import { Validator } from '@prisma/client';
 
 @Injectable()
 export class SolanaIndexer {
   constructor(
-    private prisma: PrismaService,
-    private solana: SolanaService,
-    private normalizer: SolanaNormalizer,
+    private readonly prisma: PrismaService,
+    private readonly solana: SolanaService,
+    private readonly normalizer: SolanaNormalizer,
   ) {}
 
   async indexValidators(chainId: string) {
@@ -32,27 +33,22 @@ export class SolanaIndexer {
       this.normalizer.normalizeMetric(v, epochInfo),
     );
 
-    // Build DB operations
-    const ops = [];
+    // Upsert validators
+    const validatorOps = validators.map(val =>
+      this.prisma.validator.upsert({
+        where: { address: val.address },
+        update: val,
+        create: { chainId, ...val },
+      }),
+    );
 
-    validators.forEach((val, i) => {
-      ops.push(
-        this.prisma.validator.upsert({
-          where: { address: val.address },
-          update: val,
-          create: { chainId, ...val },
-        }),
-      );
-    });
+    const savedValidators = await this.prisma.$transaction(validatorOps) as Validator[];
 
-    // Run validator upserts
-    const saved = await this.prisma.validator.findMany() as Validator[];
-    
-    // Build metric inserts
+    // Insert metrics
     const metricOps = metrics.map((m, i) =>
       this.prisma.validatorMetric.create({
         data: {
-          validatorId: saved[i].id,
+          validatorId: savedValidators[i].id,
           ...m,
         },
       }),
