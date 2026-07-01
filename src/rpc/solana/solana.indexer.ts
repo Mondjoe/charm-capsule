@@ -46,8 +46,8 @@ export class SolanaIndexer {
     });
 
     // Run validator upserts
-    const saved = await this.prisma.$transaction(ops);
-
+    const saved = await this.prisma.validator.findMany() as Validator[];
+    
     // Build metric inserts
     const metricOps = metrics.map((m, i) =>
       this.prisma.validatorMetric.create({
